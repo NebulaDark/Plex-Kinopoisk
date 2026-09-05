@@ -61,6 +61,17 @@ class ServerTests(unittest.TestCase):
         self.assertIn(b'<MediaProvider', data)
         self.assertIn(b'tv.plex.agents.custom.plexkinopois.shows', data)
 
+    def test_accepts_route_saved_by_version_010_agent(self):
+        self.app.providers['movies'].match = lambda body, lang: []
+        status, _, data = self.request(
+            'POST',
+            '/providers/movies/providers/movies/library/metadata/matches',
+            {'type': 1, 'title': 'Матрица'},
+            {'Accept': 'application/json'},
+        )
+        self.assertEqual(200, status)
+        self.assertEqual(0, json.loads(data)['MediaContainer']['size'])
+
     def test_settings_require_login_and_hide_key(self):
         status, _, _ = self.request('GET', '/api/settings')
         self.assertEqual(401, status)

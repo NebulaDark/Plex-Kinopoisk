@@ -106,6 +106,15 @@ def handler(app):
         def route(self):
             parsed=urlsplit(self.path);path=parsed.path.rstrip('/') or '/'
             query={k:v[-1] for k,v in parse_qs(parsed.query).items()}
+            # Provider groups created with 0.1.0 may retain feature keys that
+            # already contain the registered provider path. Plex then prefixes
+            # that path once more. Keep those saved groups working while new
+            # registrations use the corrected provider-relative keys.
+            for kind in app.providers:
+                duplicate='/providers/'+kind+'/providers/'+kind
+                if path==duplicate or path.startswith(duplicate+'/'):
+                    path='/providers/'+kind+path[len(duplicate):]
+                    break
             if path=='/health' and self.command in {'GET','HEAD'}:
                 return self.send(200,{'ok':True,'version':__version__})
             if path in {'/','/app.js','/style.css'} and self.command in {'GET','HEAD'}:
