@@ -1,0 +1,8 @@
+data/
+.env
+__pycache__/
+*.pyc
+.pytest_cache/
+docs/plex-api.html
+docs/kinopoisk-openapi.json
+docs/plex-api.txt
