@@ -94,6 +94,12 @@ class ProviderTests(unittest.TestCase):
         result = provider.match({'type': 1, 'title': 'Матрица', 'year': 1999, 'manual': 0}, 'ru')
         self.assertEqual(['kp-301'], [x['ratingKey'] for x in result])
 
+    def test_manual_search_omits_unrelated_zero_scores(self):
+        provider = Provider(self.store, self.sources, 'movies')
+        result = provider.match({'type': 1, 'title': 'Матрица', 'manual': 1}, 'ru')
+        self.assertTrue(result)
+        self.assertTrue(all(x['score'] >= 25 for x in result))
+
     def test_movie_metadata(self):
         provider = Provider(self.store, self.sources, 'movies')
         item = provider.metadata('kp-301', 'ru')

@@ -126,7 +126,11 @@ class Provider:
                 elif wanted:score-=5
                 candidates.append((round(max(0,score)),f))
         candidates.sort(key=lambda x:(-x[0],str(x[1].get('filmId') or x[1].get('kinopoiskId'))))
-        if not manual:
+        if manual:
+            # Manual search should be broad, but unrelated zero-score catalogue
+            # entries are never useful and make the Plex/UI result list noisy.
+            candidates=[c for c in candidates if c[0]>=25]
+        else:
             candidates=[c for c in candidates if c[0]>=conf['match_threshold']]
             # Equal matches across remakes must be resolved manually.
             if len(candidates)>1 and candidates[0][0]-candidates[1][0]<2:return []
