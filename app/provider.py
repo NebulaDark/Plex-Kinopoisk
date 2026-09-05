@@ -44,7 +44,7 @@ class Provider:
 
     def manifest(self):
         return {'MediaProvider':{'identifier':self.identifier,'title':'Kinopoisk '+self.kind.title(),
-                'version':'1.0.1','Types':[{'type':n,'Scheme':[{'scheme':self.identifier}]} for n in ([1] if self.kind=='movies' else [2,3,4])],
+                'version':'1.0.2','Types':[{'type':n,'Scheme':[{'scheme':self.identifier}]} for n in ([1] if self.kind=='movies' else [2,3,4])],
                 'Feature':[{'type':'metadata','key':self.base},{'type':'match','key':self.base+'/matches'}]}}
 
     def guid(self,kind,key):return self.identifier+'://'+kind+'/'+key

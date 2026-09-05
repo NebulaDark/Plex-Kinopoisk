@@ -175,6 +175,13 @@ def handler(app):
                 if start is None or size is None or start<0 or not 0<=size<=1000:raise ValueError('invalid_pagination')
                 if len(segments)==2 and segments[1] in {'children','grandchildren'}:
                     payload=container(provider.children(key,lang,segments[1]=='grandchildren'),start,size)
+                elif len(segments)==2 and segments[1]=='extras':
+                    # Plex requests this route even though custom-provider extras
+                    # are not part of the documented MediaProvider feature list.
+                    # A valid empty container is preferable to a 404 until Plex
+                    # publishes a stable schema for remote playable extras.
+                    provider.parse(key)
+                    payload=container([],start,size)
                 elif len(segments)==2 and segments[1]=='images':
                     payload=container(provider.metadata(key,lang).get('Image',[]),start,size,'Image')
                 elif len(segments)==1:

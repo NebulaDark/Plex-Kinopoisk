@@ -72,6 +72,17 @@ class ServerTests(unittest.TestCase):
         self.assertEqual(200, status)
         self.assertEqual(0, json.loads(data)['MediaContainer']['size'])
 
+    def test_extras_returns_valid_empty_container(self):
+        for path in (
+            '/providers/movies/library/metadata/kp-838/extras',
+            '/providers/movies/providers/movies/library/metadata/kp-838/extras',
+            '/providers/shows/library/metadata/kp-471505/extras',
+        ):
+            with self.subTest(path=path):
+                status, _, data = self.request('GET', path, headers={'Accept':'application/json'})
+                self.assertEqual(200, status)
+                self.assertEqual([], json.loads(data)['MediaContainer']['Metadata'])
+
     def test_settings_require_login_and_hide_key(self):
         status, _, _ = self.request('GET', '/api/settings')
         self.assertEqual(401, status)
