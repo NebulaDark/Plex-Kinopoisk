@@ -37,7 +37,10 @@ class Provider:
         if kind not in {'movies','shows'}:raise ValueError('invalid_provider')
         self.store,self.sources,self.kind=store,sources,kind
         self.identifier='tv.plex.agents.custom.plexkinopois.'+kind
-        self.base='/providers/'+kind+'/library/metadata'
+        # Plex resolves feature and item keys against the provider URL that the
+        # administrator registered. Including that URL's path prefix here makes
+        # Plex append it twice (for example /providers/movies/providers/movies).
+        self.base='/library/metadata'
 
     def manifest(self):
         return {'MediaProvider':{'identifier':self.identifier,'title':'Kinopoisk '+self.kind.title(),

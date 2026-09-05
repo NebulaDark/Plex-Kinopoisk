@@ -104,6 +104,7 @@ class ProviderTests(unittest.TestCase):
         provider = Provider(self.store, self.sources, 'movies')
         item = provider.metadata('kp-301', 'ru')
         self.assertEqual('Матрица', item['title'])
+        self.assertEqual('/library/metadata/kp-301', item['key'])
         self.assertEqual(8160000, item['duration'])
         self.assertEqual('Киану Ривз', item['Role'][0]['tag'])
         self.assertIn('КиноПоиск: 8.5', item['summary'])

@@ -46,6 +46,13 @@ class ServerTests(unittest.TestCase):
         body = json.loads(data)['MediaProvider']
         self.assertEqual(200, status)
         self.assertEqual([1], [x['type'] for x in body['Types']])
+        self.assertEqual(
+            [
+                {'type': 'metadata', 'key': '/library/metadata'},
+                {'type': 'match', 'key': '/library/metadata/matches'},
+            ],
+            body['Feature'],
+        )
 
     def test_show_manifest_xml(self):
         status, headers, data = self.request('GET', '/providers/shows', headers={'Accept':'application/xml'})
