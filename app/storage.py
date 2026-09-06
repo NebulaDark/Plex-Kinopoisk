@@ -3,6 +3,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import secrets
 import sqlite3
 import threading
@@ -43,7 +44,8 @@ class Store:
         self.db = sqlite3.connect(self.directory/'cache.sqlite3', check_same_thread=False)
         self.db.executescript('CREATE TABLE IF NOT EXISTS cache (key TEXT PRIMARY KEY, value TEXT, expires REAL);'
                              'CREATE TABLE IF NOT EXISTS mappings (hint TEXT PRIMARY KEY, kp INTEGER);'
-                             'CREATE TABLE IF NOT EXISTS events (ts REAL, source TEXT, code TEXT);')
+                             'CREATE TABLE IF NOT EXISTS events (ts REAL, source TEXT, code TEXT);'
+                             'CREATE TABLE IF NOT EXISTS request_logs (ts REAL, method TEXT, path TEXT, status INTEGER);')
         self.db.commit()
 
     @staticmethod
@@ -122,6 +124,30 @@ class Store:
         with self.lock:
             return {'cache_entries': self.db.execute('SELECT count(*) FROM cache').fetchone()[0],
                     'events': [dict(zip(['time','source','code'],r)) for r in self.db.execute('SELECT * FROM events ORDER BY ts DESC LIMIT 20')]}
+
+    def request_log(self, method, path, status):
+        # Store only the method and URL path. Queries, headers and bodies may
+        # contain API keys or administrator credentials and are never retained.
+        api_paths={'/api/login','/api/logout','/api/settings','/api/clear-secret','/api/check',
+                   '/api/mappings','/api/preview','/api/cache-clear'}
+        provider_path=re.fullmatch(
+            r'/providers/(movies|shows)(?:/providers/\1)?(?:/library/metadata(?:/(?:matches|kp-\d+'
+            r'(?:-s\d+(?:-e\d+)?)?(?:/(?:children|grandchildren|images|extras))?))?)?',str(path))
+        if path not in api_paths and not provider_path:
+            return
+        safe_path=''.join(c for c in str(path)[:500] if c>=' ' and c!='\x7f')
+        with self.lock:
+            self.db.execute('INSERT INTO request_logs VALUES (?,?,?,?)',
+                            (time.time(),str(method)[:12],safe_path,int(status)))
+            self.db.execute('DELETE FROM request_logs WHERE rowid NOT IN '
+                            '(SELECT rowid FROM request_logs ORDER BY ts DESC LIMIT 250)')
+            self.db.commit()
+
+    def logs(self, limit=100):
+        with self.lock:
+            rows=self.db.execute('SELECT ts,method,path,status FROM request_logs ORDER BY ts DESC LIMIT ?',
+                                 (limit,)).fetchall()
+        return [dict(zip(['time','method','path','status'],r)) for r in rows]
 
     def mappings(self):
         with self.lock:

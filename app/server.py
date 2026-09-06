@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import re
 import secrets
+import ssl
 import threading
 import time
 from urllib.parse import parse_qs,urlsplit
@@ -36,7 +37,7 @@ class Application:
         self.store=Store(directory);self.sources=Sources(self.store)
         self.providers={kind:Provider(self.store,self.sources,kind) for kind in ['movies','shows']}
         self.sessions={};self.auth_lock=threading.Lock();self.failures={}
-        self.started=time.time()
+        self.started=time.time();self.tls_enabled=False
 
     def login(self,token,ip):
         with self.auth_lock:
@@ -60,12 +61,37 @@ class Application:
         session=cookies.get('session')
         with self.auth_lock:return bool(session and self.sessions.get(session.value,0)>time.time())
 
+class BoundedThreadingHTTPServer(ThreadingHTTPServer):
+    daemon_threads=True
+
+    def __init__(self,address,request_handler,max_workers=32):
+        self.request_slots=threading.BoundedSemaphore(max_workers)
+        super().__init__(address,request_handler)
+
+    def process_request(self,request,client_address):
+        if not self.request_slots.acquire(blocking=False):
+            request.close()
+            return
+        try:super().process_request(request,client_address)
+        except Exception:
+            self.request_slots.release()
+            raise
+
+    def process_request_thread(self,request,client_address):
+        try:super().process_request_thread(request,client_address)
+        finally:self.request_slots.release()
+
 def handler(app):
     class Handler(BaseHTTPRequestHandler):
         server_version='PlexKinopois/'+__version__
         def log_message(self,fmt,*args):
-            # Do not record request bodies, query strings, headers or API credentials.
-            logging.info('%s %s',self.command,urlsplit(self.path).path)
+            # Structured, allow-listed request records are kept by Store.
+            # Avoid duplicating arbitrary URL paths in the container log.
+            pass
+
+        def setup(self):
+            super().setup()
+            self.connection.settimeout(20)
 
         def send(self,status,data,ctype='application/json; charset=utf-8',headers=None):
             if isinstance(data,(dict,list)):data=json.dumps(data,ensure_ascii=False).encode()
@@ -75,8 +101,11 @@ def handler(app):
             self.send_header('X-Content-Type-Options','nosniff');self.send_header('Cache-Control','no-store')
             self.send_header('Referrer-Policy','no-referrer')
             self.send_header('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' https: http:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
+            if app.tls_enabled:self.send_header('Strict-Transport-Security','max-age=31536000')
             for k,v in (headers or {}).items():self.send_header(k,v)
             self.end_headers()
+            try:app.store.request_log(self.command,urlsplit(self.path).path,status)
+            except Exception:logging.exception('request_log_failed')
             if self.command!='HEAD':self.wfile.write(data)
 
         def body(self):
@@ -125,13 +154,15 @@ def handler(app):
                 if origin and urlsplit(origin).netloc!=self.headers.get('Host'):raise AuthError('origin_rejected')
                 if path=='/api/login' and self.command=='POST':
                     session=app.login(self.body().get('token'),self.client_address[0])
-                    return self.send(200,{'ok':True},headers={'Set-Cookie':'session='+session+'; HttpOnly; SameSite=Strict; Path=/; Max-Age=28800'})
+                    secure='; Secure' if app.tls_enabled else ''
+                    return self.send(200,{'ok':True},headers={'Set-Cookie':'session='+session+'; HttpOnly; SameSite=Strict; Path=/; Max-Age=28800'+secure})
                 if not app.authorized(self.headers):raise AuthError('unauthorized')
                 if path=='/api/logout' and self.command=='POST':
                     cookies=SimpleCookie(self.headers.get('Cookie',''))
                     if cookies.get('session'):
                         with app.auth_lock:app.sessions.pop(cookies['session'].value,None)
-                    return self.send(200,{'ok':True},headers={'Set-Cookie':'session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0'})
+                    secure='; Secure' if app.tls_enabled else ''
+                    return self.send(200,{'ok':True},headers={'Set-Cookie':'session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0'+secure})
                 if path=='/api/settings':
                     if self.command=='POST':app.store.update(self.body())
                     return self.send(200,app.store.public())
@@ -140,7 +171,12 @@ def handler(app):
                 if path=='/api/status':
                     return self.send(200,{'version':__version__,'uptime':int(time.time()-app.started),
                         'configured':bool(app.store.get()['kp_key']),**app.store.diagnostics(),
+                        'tls':app.tls_enabled,
                         'providers':{'movies':'/providers/movies','shows':'/providers/shows'}})
+                if path=='/api/logs' and self.command=='GET':
+                    limit=number(query.get('limit','100'))
+                    if limit is None or not 1<=limit<=200:raise ValueError('invalid_limit')
+                    return self.send(200,{'entries':app.store.logs(limit)})
                 if path=='/api/check' and self.command=='POST':
                     return self.send(200,app.sources.check(self.body().get('source')))
                 if path=='/api/mappings':
@@ -196,9 +232,19 @@ def handler(app):
 def main():
     logging.basicConfig(level=logging.INFO,format='%(asctime)s %(message)s')
     app=Application(os.getenv('DATA_DIR','data'))
-    httpd=ThreadingHTTPServer((os.getenv('HOST','0.0.0.0'),int(os.getenv('PORT','8765'))),handler(app))
-    httpd.daemon_threads=True
-    logging.info('Plex-Kinopois %s ready; administrator token is in data/admin-token',__version__)
+    workers=number(os.getenv('MAX_HTTP_WORKERS','32'))
+    if workers is None or not 4<=workers<=128:raise RuntimeError('MAX_HTTP_WORKERS must be between 4 and 128')
+    httpd=BoundedThreadingHTTPServer((os.getenv('HOST','0.0.0.0'),int(os.getenv('PORT','8765'))),handler(app),workers)
+    cert=os.getenv('TLS_CERT_FILE','').strip();key=os.getenv('TLS_KEY_FILE','').strip()
+    if bool(cert)!=bool(key):raise RuntimeError('TLS_CERT_FILE and TLS_KEY_FILE must be configured together')
+    if cert:
+        context=ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        context.minimum_version=ssl.TLSVersion.TLSv1_2
+        context.load_cert_chain(cert,key)
+        httpd.socket=context.wrap_socket(httpd.socket,server_side=True)
+        app.tls_enabled=True
+    logging.info('Plex-Kinopois %s ready over %s; administrator token is in data/admin-token',
+                 __version__,'HTTPS' if app.tls_enabled else 'HTTP')
     httpd.serve_forever()
 
 if __name__=='__main__':main()

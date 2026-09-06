@@ -94,6 +94,36 @@ class ServerTests(unittest.TestCase):
         self.assertNotIn(b'very-secret', data)
         self.assertTrue(json.loads(data)['kp_key_configured'])
 
+    def test_request_logs_require_login_and_never_store_query_values(self):
+        self.request('GET', '/providers/movies?api_key=must-not-be-logged',
+                     headers={'Accept':'application/json'})
+        self.request('GET', '/not-a-route/also-must-not-be-logged')
+        status, _, _ = self.request('GET', '/api/logs')
+        self.assertEqual(401, status)
+        status, headers, _ = self.request('POST', '/api/login', {'token':self.app.store.admin_token})
+        cookie = next(v for k,v in headers if k == 'Set-Cookie').split(';',1)[0]
+        status, _, data = self.request('GET', '/api/logs?limit=20', headers={'Cookie':cookie})
+        self.assertEqual(200, status)
+        decoded=data.decode()
+        self.assertIn('/providers/movies',decoded)
+        self.assertNotIn('must-not-be-logged',decoded)
+        self.assertNotIn('/not-a-route',decoded)
+
+    def test_status_reports_transport(self):
+        status, headers, _ = self.request('POST', '/api/login', {'token':self.app.store.admin_token})
+        cookie = next(v for k,v in headers if k == 'Set-Cookie').split(';',1)[0]
+        status, _, data = self.request('GET', '/api/status', headers={'Cookie':cookie})
+        self.assertEqual(200, status)
+        self.assertFalse(json.loads(data)['tls'])
+
+    def test_tls_mode_secures_session_cookie_and_sets_hsts(self):
+        self.app.tls_enabled = True
+        status, headers, _ = self.request('POST', '/api/login', {'token':self.app.store.admin_token})
+        self.assertEqual(200, status)
+        cookie = next(v for k,v in headers if k == 'Set-Cookie')
+        self.assertIn('; Secure', cookie)
+        self.assertIn(('Strict-Transport-Security','max-age=31536000'), headers)
+
     def test_rejects_cross_origin_admin_request(self):
         status, _, _ = self.request('POST', '/api/login', {'token':self.app.store.admin_token},
                                     {'Origin':'http://evil.example'})

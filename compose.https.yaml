@@ -1,0 +1,14 @@
+services:
+  kinopois:
+    environment:
+      TLS_CERT_FILE: /tls/fullchain.pem
+      TLS_KEY_FILE: /tls/privkey.pem
+    volumes:
+      - type: bind
+        source: ${TLS_CERT_FILE_HOST:?Set TLS_CERT_FILE_HOST}
+        target: /tls/fullchain.pem
+        read_only: true
+      - type: bind
+        source: ${TLS_KEY_FILE_HOST:?Set TLS_KEY_FILE_HOST}
+        target: /tls/privkey.pem
+        read_only: true

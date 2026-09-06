@@ -6,5 +6,5 @@ COPY --chown=app:app app ./app
 COPY --chown=app:app tests ./tests
 USER app
 EXPOSE 8765
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8765/health',timeout=3)"
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 CMD python -c "import os,ssl,urllib.request; scheme='https' if os.getenv('TLS_CERT_FILE') else 'http'; urllib.request.urlopen(scheme+'://127.0.0.1:8765/health',context=ssl._create_unverified_context(),timeout=3)"
 CMD ["python", "-m", "app.server"]
