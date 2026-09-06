@@ -1,4 +1,4 @@
-# Plex-Kinopois
+# Plex-Kinopoisk
 
 Современный HTTP Metadata Provider для Plex Media Server 1.43+. Предоставляет отдельные источники для фильмов и сериалов, используя Kinopoisk Unofficial API и необязательные дополнительные источники.
 
