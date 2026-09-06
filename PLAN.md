@@ -1,4 +1,4 @@
-# Plex-Kinopois — план разработки
+# Plex-Kinopoisk — план разработки
 
 Цель: заменить Kinopoisk.bundle современными HTTP Metadata Providers для Plex 1.43+, с фильмами, сериалами, Docker и настройками RU/EN.
 
