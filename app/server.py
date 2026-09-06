@@ -243,7 +243,7 @@ def main():
         context.load_cert_chain(cert,key)
         httpd.socket=context.wrap_socket(httpd.socket,server_side=True)
         app.tls_enabled=True
-    logging.info('Plex-Kinopois %s ready over %s; administrator token is in data/admin-token',
+    logging.info('Plex-Kinopoisk %s ready over %s; administrator token is in data/admin-token',
                  __version__,'HTTPS' if app.tls_enabled else 'HTTP')
     httpd.serve_forever()
 
