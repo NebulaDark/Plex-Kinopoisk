@@ -58,7 +58,7 @@ docker compose version
 
 ```powershell
 cd $HOME
-git clone https://github.com/paveltarasov50-coder/Plex-Kinopois.git
+git clone https://github.com/NebulaDark/Plex-Kinopois.git
 cd Plex-Kinopois
 Copy-Item .env.example .env
 ```
@@ -68,7 +68,7 @@ Copy-Item .env.example .env
 ### Linux
 
 ```bash
-git clone https://github.com/paveltarasov50-coder/Plex-Kinopois.git
+git clone https://github.com/NebulaDark/Plex-Kinopois.git
 cd Plex-Kinopois
 cp .env.example .env
 ```
