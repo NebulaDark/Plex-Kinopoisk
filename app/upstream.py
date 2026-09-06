@@ -32,7 +32,7 @@ class Sources:
         cachekey=hashlib.sha256((url+key).encode()).hexdigest()
         data=self.store.cached(cachekey)
         if data is not None:return data
-        headers={'Accept':'application/json','User-Agent':'Plex-Kinopois/0.1'}
+        headers={'Accept':'application/json','User-Agent':'Plex-Kinopoisk/0.1'}
         if source=='kp':headers['X-API-KEY']=key
         proxy=conf['proxy_url']
         opener=build_opener(ProxyHandler({'http':proxy,'https':proxy} if proxy else {}))
