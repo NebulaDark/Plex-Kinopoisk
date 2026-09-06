@@ -1,13 +1,13 @@
-# Установка Plex-Kinopois
+# Установка Plex-Kinopoisk
 
-Эта инструкция рассчитана на обычную домашнюю установку. Plex Media Server и Plex-Kinopois могут работать на одном компьютере или на разных устройствах в одной сети.
+Эта инструкция рассчитана на обычную домашнюю установку. Plex Media Server и Plex-Kinopoisk могут работать на одном компьютере или на разных устройствах в одной сети.
 
 ## Что понадобится
 
 - Plex Media Server версии 1.43 или новее;
 - Docker Desktop для Windows либо Docker Engine с Compose для Linux;
 - бесплатный API-ключ Kinopoisk Unofficial;
-- адрес компьютера, на котором будет работать Plex-Kinopois.
+- адрес компьютера, на котором будет работать Plex-Kinopoisk.
 
 Видео и база данных Plex не передаются контейнеру. Сервис получает метаданные из внешних источников и отвечает Plex по HTTP.
 
@@ -16,7 +16,7 @@
 1. Откройте [kinopoiskapiunofficial.tech](https://kinopoiskapiunofficial.tech).
 2. Зарегистрируйтесь или войдите.
 3. Создайте API-ключ в профиле.
-4. Сохраните ключ: он понадобится после первого запуска Plex-Kinopois.
+4. Сохраните ключ: он понадобится после первого запуска Plex-Kinopoisk.
 
 Не добавляйте ключ в файлы Git и не публикуйте его.
 
@@ -58,8 +58,8 @@ docker compose version
 
 ```powershell
 cd $HOME
-git clone https://github.com/NebulaDark/Plex-Kinopois.git
-cd Plex-Kinopois
+git clone https://github.com/NebulaDark/Plex-Kinopoisk.git
+cd Plex-Kinopoisk
 Copy-Item .env.example .env
 ```
 
@@ -68,8 +68,8 @@ Copy-Item .env.example .env
 ### Linux
 
 ```bash
-git clone https://github.com/NebulaDark/Plex-Kinopois.git
-cd Plex-Kinopois
+git clone https://github.com/NebulaDark/Plex-Kinopoisk.git
+cd Plex-Kinopoisk
 cp .env.example .env
 ```
 
@@ -84,7 +84,7 @@ BIND_ADDRESS=0.0.0.0
 PORT=8765
 ```
 
-Если Plex и Plex-Kinopois работают на одном компьютере, можно оставить:
+Если Plex и Plex-Kinopoisk работают на одном компьютере, можно оставить:
 
 ```dotenv
 BIND_ADDRESS=127.0.0.1
@@ -115,9 +115,9 @@ docker compose ps
 docker compose exec kinopois cat /data/admin-token
 ```
 
-Это ключ входа в настройки Plex-Kinopois. Он не является API-ключом КиноПоиска. Не публикуйте и не отправляйте его другим людям.
+Это ключ входа в настройки Plex-Kinopoisk. Он не является API-ключом КиноПоиска. Не публикуйте и не отправляйте его другим людям.
 
-## 6. Откройте настройки Plex-Kinopois
+## 6. Откройте настройки Plex-Kinopoisk
 
 В браузере откройте:
 
@@ -139,11 +139,11 @@ docker compose exec kinopois cat /data/admin-token
 Нажмите **Add Provider** и добавьте два адреса по отдельности:
 
 ```text
-http://IP-PLEX-KINOPOIS:8765/providers/movies
-http://IP-PLEX-KINOPOIS:8765/providers/shows
+http://IP-PLEX-KINOPOISK:8765/providers/movies
+http://IP-PLEX-KINOPOISK:8765/providers/shows
 ```
 
-Если Plex-Kinopois и Plex установлены на одном Windows-компьютере, вместо IP можно использовать `127.0.0.1`. Если Plex работает в контейнере, `127.0.0.1` указывает на сам контейнер Plex; используйте IP хоста или доступное контейнеру DNS-имя.
+Если Plex-Kinopoisk и Plex установлены на одном Windows-компьютере, вместо IP можно использовать `127.0.0.1`. Если Plex работает в контейнере, `127.0.0.1` указывает на сам контейнер Plex; используйте IP хоста или доступное контейнеру DNS-имя.
 
 После добавления должны появиться поставщики **Kinopoisk Movies** и **Kinopoisk Shows**.
 
@@ -172,7 +172,7 @@ http://IP-PLEX-KINOPOIS:8765/providers/shows
 5. Сохраните изменения.
 6. Запустите **Сканировать файлы библиотеки**, затем **Обновить все метаданные**.
 
-Для отдельной неверно найденной карточки используйте **⋯ → Исправить совпадение**. В Plex-Kinopois также поддерживается поиск по `kp-ID`, ссылке КиноПоиска и IMDb ID.
+Для отдельной неверно найденной карточки используйте **⋯ → Исправить совпадение**. В Plex-Kinopoisk также поддерживается поиск по `kp-ID`, ссылке КиноПоиска и IMDb ID.
 
 ## 10. Проверка работы
 
@@ -184,7 +184,7 @@ http://IP-PLEX-KINOPOIS:8765/providers/shows
 - актёров и съёмочную группу;
 - сезоны и эпизоды сериалов.
 
-В интерфейсе Plex-Kinopois раздел **Журнал** показывает последние безопасно сохранённые запросы. Query-параметры, тела запросов, заголовки, cookie и API-ключи туда не записываются.
+В интерфейсе Plex-Kinopoisk раздел **Журнал** показывает последние безопасно сохранённые запросы. Query-параметры, тела запросов, заголовки, cookie и API-ключи туда не записываются.
 
 Локальная проверка сервиса:
 
@@ -195,6 +195,8 @@ curl http://127.0.0.1:8765/health
 Ожидаемый ответ содержит `"ok": true`.
 
 ## Обновление
+
+Имя проекта Docker Compose закреплено как `plex-kinopois`, чтобы переименование папки не создавало новый том данных. Если ранее использовали собственное имя проекта (`-p` или `COMPOSE_PROJECT_NAME`), продолжайте использовать его.
 
 В папке проекта выполните:
 
