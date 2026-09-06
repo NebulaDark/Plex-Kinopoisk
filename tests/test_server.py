@@ -39,7 +39,7 @@ class ServerTests(unittest.TestCase):
     def test_settings_page_is_public(self):
         status, _, data = self.request('GET', '/')
         self.assertEqual(200, status)
-        self.assertIn(b'Plex-Kinopois', data)
+        self.assertIn(b'Plex-Kinopoisk', data)
 
     def test_movie_manifest_json(self):
         status, _, data = self.request('GET', '/providers/movies', headers={'Accept':'application/json'})
