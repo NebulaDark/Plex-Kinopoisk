@@ -1,0 +1,21 @@
+[Unit]
+Description=Plex-Kinopois metadata provider
+Requires=docker.service
+Wants=network-online.target
+After=docker.service network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+User=mgm
+Group=mgm
+WorkingDirectory=/home/mgm/Projects/Plex-Kinopois
+EnvironmentFile=-/home/mgm/Projects/Plex-Kinopois/.env
+ExecStartPre=/usr/bin/python3 /home/mgm/Projects/Plex-Kinopois/deploy/wait_for_bind_address.py
+ExecStart=/usr/bin/docker compose up -d --no-build
+TimeoutStartSec=120
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
